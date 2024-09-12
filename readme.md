@@ -67,6 +67,11 @@ If you have any suggested improvements for this project or encounter any issues,
 
 ## Changelog
 
+### Ver. 0.0.2
+
+- Made functions for several reused messages / responses, implemented error
+handling for event_message for troubleshooting purposes
+
 ### Ver. 0.0.1
 
 - Initial release with basic Pokemon catching functionality and Pokedex checking feature, as well as Docker support.
