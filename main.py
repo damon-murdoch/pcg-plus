@@ -9,7 +9,7 @@ from src.log import write_log
 from twitchio.ext import commands
 
 # Software Version
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 
 # Pokemon Community Game Account
 PCG_ID = "pokemoncommunitygame"
@@ -19,8 +19,10 @@ load_dotenv()
 
 # Load Environment Variables
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
-USERNAME = os.getenv("BOT_USERNAME")
 CHANNEL = os.getenv("BOT_CHANNEL")
+
+# Get the account username (force lowercase)
+USERNAME = os.getenv("BOT_USERNAME").lower()
 
 # Get the Pokeball type (Default: pokeball)
 BALL_TYPE = os.getenv("BALL_TYPE", "pokeball")
@@ -34,9 +36,13 @@ def random_delay():
     time.sleep(random.uniform(3, 6))
 
 
-def parse_species(message):
+def parse_spawn(message):
     # Seperate the species name from the spawn message
-    return message.split("A wild ")[1].split(" appears")[0]
+    return message.split("a wild ")[1].split(" appears")[0]
+
+def parse_registered(message):
+    # Seperate species name from registered message
+    return message.split(f"{USERNAME} ")[1].split(" registered")[0]
 
 
 class Bot(commands.Bot):
@@ -70,6 +76,18 @@ class Bot(commands.Bot):
         # Send pokecheck request
         await self.send_message(f"!pokecheck")
 
+    async def found_pokemon(self, species):
+
+        write_log(f"Pokemon found: {species}")
+
+        # Parse the species from the message
+        self.current_species = species
+
+        if CHECK_POKEDEX:
+            await self.check_species()
+        else:
+            await self.purchase_ball()
+
     async def catch_pokemon(self):
 
         write_log(f"Catching Pokemon {self.current_species} ...")
@@ -78,21 +96,23 @@ class Bot(commands.Bot):
         await self.send_message(f"!pokecatch {BALL_TYPE}")
 
     async def catch_complete(self, success=True):
-        if success:
-            write_log(f"Pokemon {self.current_species} caught successfully!")
-        else:
-            write_log(f"Pokemon {self.current_species} was not caught.")
+        # Current species found
+        if self.current_species:
+            if success:
+                write_log(f"Pokemon {self.current_species} caught successfully!")
+            else:
+                write_log(f"Pokemon {self.current_species} was not caught.")
         self.current_species = None
 
     async def purchase_ball(self):
 
         write_log(f"Buying ball {BALL_TYPE} ...")
 
-        # Buy a pokeball (Or ball desired)
-        await self.send_message(f"!pokeshop {BALL_TYPE} 1")
-
         # Bot purchased the last item
         self.purchased_item = True
+
+        # Buy a pokeball (Or ball desired)
+        await self.send_message(f"!pokeshop {BALL_TYPE} 1")
 
     async def event_ready(self):
         write_log(f"Bot started! Username: {USERNAME} ...")
@@ -111,21 +131,13 @@ class Bot(commands.Bot):
             # Community game message
             if author.name == PCG_ID:
 
-                # Parse message content
-                content = message.content
+                # Parse message content (Lowercase)
+                content = message.content.lower()
 
                 # If the message is a wild Pokemon
-                if "Catch it using !pokecatch" in content:
-
-                    # Parse the species from the message
-                    self.current_species = parse_species(content)
-
-                    write_log(f"Pokemon found: {self.current_species}")
-
-                    if CHECK_POKEDEX:
-                        await self.check_species()
-                    else:
-                        await self.purchase_ball()
+                if "catch it using !pokecatch" in content:
+                    species = parse_spawn(content).lower()
+                    await self.found_pokemon(species)
 
                 # TODO: Support more commands
 
@@ -133,41 +145,40 @@ class Bot(commands.Bot):
                 elif f"@{USERNAME}" in content:
 
                     # Item purchase successful
-                    if "Purchase successful!" in content:
-
+                    if "purchase successful!" in content:
                         # Bot purchased a ball
                         if self.purchased_item == True:
-
                             write_log(f"Ball {BALL_TYPE} purchased successfully!")
-
-                            # Bot purchased item, and species is available
-                            if self.purchased_item and self.current_species:
-
+                            # Species available
+                            if self.current_species:
                                 # Attempt to catch the Pokemon
                                 await self.catch_pokemon()
-
                             # Mark ball purchased as false
                             self.purchased_item = False
 
                     # Pokecheck message response
-                    elif "registered in Pokédex: ❌" in content:
+                    elif "registered in Pokédex" in content:
 
-                        write_log(f"Species {self.current_species} not registered!")
+                        # Get checked species from the message
+                        species = parse_registered(content)
 
-                        await self.purchase_ball()
+                        # Bot catching Pokemon
+                        if self.current_species == species:
+                            write_log(f"Species {self.current_species} not registered!")
+                            await self.purchase_ball()
 
                     # Captured Pokemon successfully
-                    elif "has been caught by:" in content:
+                    elif "has been caught by" in content:
                         await self.catch_complete(True)
 
                     # TODO: Support more commands
 
                 # Player failed to catch
-                elif "has been caught by:" in content:
+                elif "has been caught by" in content:
                     await self.catch_complete(False)
 
                 # Nobody caught
-                elif "escaped. No one caught it." in content:
+                elif "no one caught it" in content:
                     await self.catch_complete(False)
             # Ignore messages by others
         except Exception as e:

@@ -67,6 +67,10 @@ If you have any suggested improvements for this project or encounter any issues,
 
 ## Changelog
 
+### Ver. 0.0.3
+
+- Minor improvements
+
 ### Ver. 0.0.2
 
 - Made functions for several reused messages / responses, implemented error
