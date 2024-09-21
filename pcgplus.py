@@ -5,6 +5,8 @@ import random
 from dotenv import load_dotenv
 from src.log import write_log
 
+import src.showdown as showdown
+
 # Twitch Chat Bot Interface
 from twitchio.ext import commands
 
@@ -30,6 +32,23 @@ BALL_TYPE = os.getenv("BALL_TYPE", "pokeball")
 # Check if the dex entry is registered before catching (Boolean)
 CHECK_POKEDEX = bool(os.getenv("CHECK_POKEDEX", "false") == "true")
 
+# Get the list of favorite Pokemon
+# These will be re-caught, even if CHECK_POKEDEX is set to true
+# and optionally can be caught with a different ball 'BALL_FAVORITES'
+FAV_POKEMON = os.getenv("FAV_POKEMON", "").split(",")
+
+# If this is set to true, any evolutions for the FAV_POKEMON category
+# will be included, even if they are not explicitly provided.
+FAV_INCLUDE_EVOS = bool(os.getenv("FAV_INCLUDE_EVOS", "false") == "true")
+
+# If this is set to true, any previous evolutions for the FAV_POKEMON
+# category will be included, even if they are not explicitly provided.
+FAV_INCLUDE_PREVO = bool(os.getenv("FAV_INCLUDE_PREVO", "false") == "true")
+
+# Get the ball to use for favorite Pokemon
+# If not set, this will use the same ball as BALL_TYPE
+FAV_BALL_TYPE = os.getenv("FAV_BALL", BALL_TYPE)
+
 
 def random_delay():
     # Random delay of 3-6 seconds
@@ -40,9 +59,15 @@ def parse_spawn(message):
     # Seperate the species name from the spawn message
     return message.split("a wild ")[1].split(" appears")[0]
 
+
 def parse_registered(message):
     # Seperate species name from registered message
     return message.split(f"{USERNAME} ")[1].split(" registered")[0]
+
+
+def parse_showdown(species):
+    # Convert to lowercase and remove dashes
+    return species.lower().replace("-", "")
 
 
 class Bot(commands.Bot):
@@ -54,11 +79,36 @@ class Bot(commands.Bot):
             token=ACCESS_TOKEN, prefix="?", initial_channels=[CHANNEL]  # Unused
         )
 
+        # Import the showdown data and save as moves, dex
+        self.moves, self.dex = showdown.get_showdown_data()
+
         # Current encounter tracking variable
         self.current_species = None
 
         # Item was purchased by bot
         self.purchased_item = False
+
+        print(self.is_favorite("zoroark"))
+        exit(0)
+
+    def is_favorite(self, species):
+
+        # Get the data for the species
+        data = self.dex[species]
+
+        # Check for fav. evolutions
+        if FAV_INCLUDE_EVOS and "evos" in data:
+            for evo in data["evos"]:
+                if parse_showdown(evo) in FAV_POKEMON:
+                    return True  # Evo is favorite
+                
+        # Check for fav. previous evolutions
+        if FAV_INCLUDE_PREVO and "prevo" in data:
+            if parse_showdown(data["prevo"]) in FAV_POKEMON:
+                return True  # Prevo is favorite
+
+        # Not favorite
+        return False
 
     async def send_message(self, message, delay=True):
 
@@ -83,10 +133,14 @@ class Bot(commands.Bot):
         # Parse the species from the message
         self.current_species = species
 
-        if CHECK_POKEDEX:
-            await self.check_species()
+        # If the species is a favorite
+        if self.is_favorite(self, species):
+            pass
         else:
-            await self.purchase_ball()
+            if CHECK_POKEDEX:
+                await self.check_species()
+            else:
+                await self.purchase_ball()
 
     async def catch_pokemon(self):
 
