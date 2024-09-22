@@ -2,16 +2,18 @@ from datetime import datetime
 
 LOG_FILE = "events.log"
 
-def get_timestamp(time = None):
+
+def get_timestamp(time=None):
 
     # Use current time, if not provided
     if time == None:
         time = datetime.now()
 
     # Generate and return the timestamp
-    return time.strftime('%Y-%m-%d')
+    return time.strftime("%Y-%m-%d")
 
-def write_log(message, time = None):
+
+def write_log(message, time=None):
 
     # Get the timestamp
     ts = get_timestamp(time)

@@ -57,6 +57,7 @@ FAV_BALL_TYPE = os.getenv("FAV_BALL", BALL_TYPE)
 # If this is set to true, ONLY favorite Pokemon will be catched
 FAV_ONLY = bool(os.getenv("FAV_ONLY", "false") == "true")
 
+
 def random_delay():
     # Random delay of 3-6 seconds
     time.sleep(random.uniform(3, 6))
@@ -108,7 +109,7 @@ class Bot(commands.Bot):
         if FAV_TAGS and "tags" in data:
             for tag in data["tags"]:
                 if parse_showdown(tag) in FAV_TAGS:
-                    return True # Tag is favorite
+                    return True  # Tag is favorite
 
         # Check for fav. evolutions
         if FAV_INCLUDE_EVOS and "evos" in data:
@@ -236,8 +237,6 @@ class Bot(commands.Bot):
 
                         # Get checked species from the message
                         species = parse_showdown(parse_registered(content))
-
-                        print(species, self.current_species)
 
                         # Bot catching Pokemon
                         if self.current_species == species:
