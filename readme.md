@@ -4,12 +4,14 @@
 
 ## Description
 
-PCG-Plus is a Python bot designed to automate the process of catching Pokemon in the Pokemon Community Game on Twitch. It includes features such as automatic purchasing of Pokeballs and checking if a Pokemon is already in the Pokedex before attempting to catch it. This bot interacts with Twitch chat and is customizable through environment variables.
+PCG-Plus is a Python bot designed to automate the process of catching Pokemon in the Pokemon Community Game on Twitch. It includes features such as automatic purchasing of Pokeballs, checking if a Pokemon is already in the Pokedex, and prioritizing catching favorite Pokemon. This bot interacts with Twitch chat and is customizable through environment variables.
 
 ## Table of Contents
 
 - [Installation](#installation)
 - [Usage](#usage)
+- [Favorite Pokemon Features](#favorite-pokemon-features)
+- [Environment Variables](#environment-variables)
 - [Future Changes](#future-changes)
 - [Problems / Improvements](#problems--improvements)
 - [Changelog](#changelog)
@@ -30,14 +32,7 @@ To install and run this bot:
    pip install -r requirements.txt
    ```
 
-3. Set up the environment variables in a `.env` file:
-   ```env
-   ACCESS_TOKEN=your_twitch_access_token
-   BOT_USERNAME=your_bot_username
-   BOT_CHANNEL=target_twitch_channel
-   BALL_TYPE=pokeball
-   CHECK_POKEDEX=false
-   ```
+3. Set up the environment variables in a `.env` file (refer to the [Environment Variables](#environment-variables) section for more details).
 
 4. Run the bot:
    ```bash
@@ -50,6 +45,39 @@ The bot listens for messages in the Twitch chat, automatically identifies wild P
 
 - **Automatic Catch**: The bot will use the specified Pokeball type to catch a Pokemon.
 - **Check Pokedex**: If enabled, the bot will check whether the Pokemon is already in your Pokedex before attempting to catch it.
+
+## Favorite Pokemon Features
+
+This bot includes advanced features to help prioritize certain favorite Pokemon:
+
+- **Favorite Pokemon**: You can specify a list of favorite Pokemon, and the bot will prioritize catching them, even if Pokedex checking is enabled.
+- **Favorite Ball**: You can assign a different Pokeball to be used for favorite Pokemon.
+- **Evolutions**: Optionally include any evolutions or previous forms of the favorite Pokemon in the priority list.
+- **Favorite Only**: You can set the bot to only catch your favorite Pokemon, ignoring all others.
+
+## Environment Variables
+
+PCG-Plus uses a `.env` file to configure the bot. Below is an example of the `sample.env` file provided:
+
+```env
+# Account Properties
+ACCESS_TOKEN=[my-access-token]
+BOT_USERNAME=[my-bot-name]
+BOT_CHANNEL=[my-connected-channel]
+
+# General Config
+CHECK_POKEDEX=false
+BALL_TYPE=pokeball
+
+# Favorite Pokemon
+# FAV_TAGS=sublegendary,restrictedlegendary,mythical,ultrabeast,paradox
+# FAV_POKEMON=ralts,zorua
+# FAV_INCLUDE_EVOS=true
+# FAV_INCLUDE_PREVO=true
+# FAV_BALL_TYPE=greatball
+```
+
+Make sure to replace `[my-access-token]`, `[my-bot-name]`, and `[my-connected-channel]` with your actual Twitch bot credentials. You can customize various other settings, such as the Pokeball type and favorite Pokemon preferences.
 
 ## Future Changes
 
@@ -67,14 +95,17 @@ If you have any suggested improvements for this project or encounter any issues,
 
 ## Changelog
 
+### Ver. 1.0.0
+
+- Added features to catch favorite Pokemon, including special Pokeball options and evolution handling.
+
 ### Ver. 0.0.3
 
 - Minor improvements
 
 ### Ver. 0.0.2
 
-- Made functions for several reused messages / responses, implemented error
-handling for event_message for troubleshooting purposes
+- Made functions for several reused messages / responses, implemented error handling for event_message for troubleshooting purposes
 
 ### Ver. 0.0.1
 

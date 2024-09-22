@@ -11,7 +11,7 @@ import src.showdown as showdown
 from twitchio.ext import commands
 
 # Software Version
-VERSION = "0.0.3"
+VERSION = "1.0.0"
 
 # Pokemon Community Game Account
 PCG_ID = "pokemoncommunitygame"
@@ -32,9 +32,14 @@ BALL_TYPE = os.getenv("BALL_TYPE", "pokeball")
 # Check if the dex entry is registered before catching (Boolean)
 CHECK_POKEDEX = bool(os.getenv("CHECK_POKEDEX", "false") == "true")
 
-# Get the list of favorite Pokemon
+# Favorite Pokemon
 # These will be re-caught, even if CHECK_POKEDEX is set to true
 # and optionally can be caught with a different ball 'BALL_FAVORITES'
+
+# List of favorite tags
+FAV_TAGS = os.getenv("FAV_TAGS", "").split(",")
+
+# List of custom favorite Pokemon
 FAV_POKEMON = os.getenv("FAV_POKEMON", "").split(",")
 
 # If this is set to true, any evolutions for the FAV_POKEMON category
@@ -49,6 +54,8 @@ FAV_INCLUDE_PREVO = bool(os.getenv("FAV_INCLUDE_PREVO", "false") == "true")
 # If not set, this will use the same ball as BALL_TYPE
 FAV_BALL_TYPE = os.getenv("FAV_BALL", BALL_TYPE)
 
+# If this is set to true, ONLY favorite Pokemon will be catched
+FAV_ONLY = bool(os.getenv("FAV_ONLY", "false") == "true")
 
 def random_delay():
     # Random delay of 3-6 seconds
@@ -66,8 +73,8 @@ def parse_registered(message):
 
 
 def parse_showdown(species):
-    # Convert to lowercase and remove dashes
-    return species.lower().replace("-", "")
+    # Convert to lowercase and remove dashes / spaces
+    return species.lower().replace("-", "").replace(" ", "")
 
 
 class Bot(commands.Bot):
@@ -88,20 +95,27 @@ class Bot(commands.Bot):
         # Item was purchased by bot
         self.purchased_item = False
 
-        print(self.is_favorite("zoroark"))
-        exit(0)
-
     def is_favorite(self, species):
+
+        # Species is a favorite
+        if species in FAV_POKEMON:
+            return True
 
         # Get the data for the species
         data = self.dex[species]
+
+        # Check for fav. tags
+        if FAV_TAGS and "tags" in data:
+            for tag in data["tags"]:
+                if parse_showdown(tag) in FAV_TAGS:
+                    return True # Tag is favorite
 
         # Check for fav. evolutions
         if FAV_INCLUDE_EVOS and "evos" in data:
             for evo in data["evos"]:
                 if parse_showdown(evo) in FAV_POKEMON:
                     return True  # Evo is favorite
-                
+
         # Check for fav. previous evolutions
         if FAV_INCLUDE_PREVO and "prevo" in data:
             if parse_showdown(data["prevo"]) in FAV_POKEMON:
@@ -134,13 +148,15 @@ class Bot(commands.Bot):
         self.current_species = species
 
         # If the species is a favorite
-        if self.is_favorite(self, species):
-            pass
+        if self.is_favorite(species):
+            await self.purchase_ball(favorite=True)
         else:
+            if FAV_ONLY:
+                write_log(f"Pokemon {species} is not a favorite, ignoring ...")
             if CHECK_POKEDEX:
                 await self.check_species()
             else:
-                await self.purchase_ball()
+                await self.purchase_ball(favorite=False)
 
     async def catch_pokemon(self):
 
@@ -158,15 +174,20 @@ class Bot(commands.Bot):
                 write_log(f"Pokemon {self.current_species} was not caught.")
         self.current_species = None
 
-    async def purchase_ball(self):
+    async def purchase_ball(self, favorite: bool = False):
 
-        write_log(f"Buying ball {BALL_TYPE} ...")
+        # Select ball type
+        ball = BALL_TYPE
+        if favorite:
+            ball = FAV_BALL_TYPE
+
+        write_log(f"Buying ball {ball} ...")
 
         # Bot purchased the last item
         self.purchased_item = True
 
         # Buy a pokeball (Or ball desired)
-        await self.send_message(f"!pokeshop {BALL_TYPE} 1")
+        await self.send_message(f"!pokeshop {ball} 1")
 
     async def event_ready(self):
         write_log(f"Bot started! Username: {USERNAME} ...")
@@ -190,7 +211,7 @@ class Bot(commands.Bot):
 
                 # If the message is a wild Pokemon
                 if "catch it using !pokecatch" in content:
-                    species = parse_spawn(content).lower()
+                    species = parse_showdown(parse_spawn(content))
                     await self.found_pokemon(species)
 
                 # TODO: Support more commands
@@ -211,10 +232,12 @@ class Bot(commands.Bot):
                             self.purchased_item = False
 
                     # Pokecheck message response
-                    elif "registered in Pokédex" in content:
+                    elif "registered in" in content:
 
                         # Get checked species from the message
-                        species = parse_registered(content)
+                        species = parse_showdown(parse_registered(content))
+
+                        print(species, self.current_species)
 
                         # Bot catching Pokemon
                         if self.current_species == species:
