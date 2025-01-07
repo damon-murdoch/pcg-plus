@@ -1,0 +1,5 @@
+
+events.log
+*.pyc
+/data
+.env

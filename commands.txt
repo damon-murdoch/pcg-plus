@@ -1,0 +1,33 @@
+**List of all commands**
+
+!pokestart 
+Get your starter Pokémon and start your journey! 
+
+!pokebuddy
+Display your buddy Pokémon.
+
+!pokepass 
+See your balance and achievements.
+
+!pokecatch <pokeball/ great ball/ ultra ball/ master ball>
+If no ball is selected you use a Pokéball.
+
+!pokeshop <itemname> <quantity>
+Buy items in the shop. 
+
+!pokedex <gen no. / type>
+See your Pokédex completion
+
+!pokeraid 
+Check which raid is currently running
+
+!pokedaily
+Get your daily rewards on our Discord server!
+
+!pokecheck <Pokémon / Pokedex ID>
+Check if you already caught a specific Pokémon.
+
+!pokeloyalty
+Check your loyalty score and progress!
+
+You earn money by participating in the stream, subscribers earn 1.5x the money
